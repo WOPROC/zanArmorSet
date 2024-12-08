@@ -1,0 +1,13 @@
+## Interface: 11505, 40400, 11504
+## Title: Zanalia_Armor
+## Author: Zanalia
+## Version: 1.0.0
+## Notes: Swap between armor sets, without the hassle of extreme changes to UI.
+## IconTexture: 
+## OptionalDeps: 
+## RequiredDeps: 
+## SavedVariables: zas_ArmorList
+## DefaultState: Enabled
+
+
+zas_Brain.lua
