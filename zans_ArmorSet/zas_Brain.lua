@@ -33,12 +33,14 @@ function cmdFunc(str)
     -- Check for "save" or "load" and extract the third word
     if containsWord(words[1], "save") and words[2] then
         saveArmorSet(words[2])
+		addContent()
     elseif containsWord(words[1], "load") and words[2] then
         loadArmorSet(words[2])
 	elseif containsWord(words[1], "list") then
 		listArmorSets()
     elseif (containsWord(words[1], "delete") or containsWord(words[1], "remove"))and words[2] then
 		deleteArmorSet(words[2])
+		addContent()
 	else
         print("Invalid command")
     end
@@ -83,7 +85,9 @@ function saveArmorSet(s_name)
 
     -- Save the gear set under the specified name
     zas_ArmorList[characterName][s_name] = gearSet
-
+	zas_ArmorList[characterName][s_name]["hat"] = ShowingHelm()
+	zas_ArmorList[characterName][s_name]["cape"] = ShowingCloak()
+	grabAllGearsById()
     print("Armor set '" .. s_name .. "' saved for " .. YELLOW..characterName)
 end
 
@@ -96,18 +100,27 @@ function loadArmorSet(s_name)
 
         -- Equip each item in the gear set
         for slotName, itemID in pairs(gearSet) do
-            if itemID then
+			
+            if itemID and slotName ~= "cape" and slotName ~= "hat" then
                 local slotID = GetInventorySlotInfo(slotName)
 
                 -- Pickup and equip the item for this slot
                 EquipItemByName(itemID)
             else
-                print(slotName .. " is empty, no item to equip.")
-            end
+				if slotName ~= "cape" and slotName ~= "hat" then
+					print(slotName .. " is empty, no item to equip.")
+				end
+			end
         end
-    else
+		
+		ShowCloak(zas_ArmorList[characterName][s_name]["cape"])
+		ShowHelm(zas_ArmorList[characterName][s_name]["hat"])
+	
+	else
         print("Gear set '" .. s_name .. "' not found for " .. characterName)
     end
+	
+	
 end
 
 
@@ -134,6 +147,29 @@ function GetEquippedGearIDs()
     end
 
     return gearIDs
+end
+
+-- Define the items for which to add custom text
+local specialItems = {
+}
+
+function grabAllGearsById()
+	specialItems = {}
+	
+	for key, _ in pairs(zas_ArmorList[UnitName("player")]) do
+		for slotId, gearId in pairs(zas_ArmorList[UnitName("player")][key]) do
+			if slotId ~= "hat" and slotId ~= "cape" then
+				if specialItems[gearId] then
+					local temp = specialItems[gearId]
+					specialItems[gearId] = temp .. ", ".. key
+				else
+					specialItems[gearId] = key
+				end
+			end
+		end
+	
+	end
+	
 end
 
 
@@ -167,9 +203,29 @@ SlashCmdList.commands = cmdFunc;
 			if not zas_ArmorList then
 				zas_ArmorList = {}
 			end
-
+			
+			addContent()
+			grabAllGearsById()
 	end
 	
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("ADDON_LOADED")
 frame:SetScript("OnEvent", OnAddonLoaded)
+
+
+
+
+-- Function to modify the tooltip
+local function onTooltipSetItem(tooltip)
+    local _, itemLink = tooltip:GetItem()
+    if not itemLink then return end
+
+    local itemID = tonumber(strmatch(itemLink, "item:(%d+)"))
+    if specialItems[itemID] then
+        tooltip:AddLine(specialItems[itemID], 1, 1, 0)
+        tooltip:Show()  -- Update the tooltip
+    end
+end
+
+-- Hook into the tooltip's event
+GameTooltip:HookScript("OnTooltipSetItem", onTooltipSetItem)
